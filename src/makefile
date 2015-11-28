@@ -59,7 +59,7 @@ DEFINES += -DSTEPTICKER_DEBUG_PIN=$(STEPTICKER_DEBUG_PIN)
 endif
 
 # add any modules that you do not want included in the build
-EXCLUDE_MODULES = tools/touchprobe
+EXCLUDE_MODULES = tools/touchprobe tools/zprobe tools/laser utils/panel tools/scaracal
 # e.g for a CNC machine
 #export EXCLUDED_MODULES = tools/touchprobe tools/laser tools/temperaturecontrol tools/extruder
 
@@ -71,14 +71,14 @@ endif
 
 
 # set to not compile in any network support
-#export NONETWORK = 1
+export NONETWORK = 1
 
 include $(BUILD_DIR)/build.mk
 
-CONSOLE?=/dev/arduino
-BAUD?=1000000
+CONSOLE?=/dev/smoothie1
+BAUD?=115200
 
-.PHONY: debug-store flash upload debug console dfu
+.PHONY: debug-store flash upload debug console dfu deploy server config
 
 debug-store: ../LPC1768/$(PROJECT).elf
 	cp ../LPC1768/$(PROJECT).elf ../LPC1768/$(PROJECT)_lastupload.elf
@@ -98,3 +98,15 @@ debug: ../LPC1768/$(PROJECT)_lastupload.elf
 console:
 	stty raw ignbrk -echo $(BAUD) < $(CONSOLE)
 	( cat <&3 & cat >&3 ; kill %% ) 3<>$(CONSOLE)
+
+deploy: 
+	cp ../LPC1768/$(PROJECT).bin /media/chris/Smoothie/firmware.bin
+
+server: 
+	scp ../LPC1768/$(PROJECT).bin rpir:/home/pi/Scripts/firmware.bin
+	ssh rpir /home/pi/Scripts/SmoothieUpdate.sh
+
+config: 
+	scp ../ConfigSamples/config.mine rpir:/home/pi/Scripts/config
+	ssh rpir /home/pi/Scripts/SmoothieConfig.sh
+

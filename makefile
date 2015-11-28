@@ -4,9 +4,9 @@ DIRS = mbed src
 DIRSCLEAN = $(addsuffix .clean,$(DIRS))
 
 all:
-	@ $(MAKE) -C mbed
+	@ $(MAKE) -j -C mbed
 	@echo Building Smoothie
-	@ $(MAKE) -C src
+	@ $(MAKE) -j -C src
 
 clean: $(DIRSCLEAN)
 
@@ -32,4 +32,11 @@ debug:
 console:
 	@ $(MAKE) -C src console
 
-.PHONY: all $(DIRS) $(DIRSCLEAN) debug-store flash upload debug console dfu
+deploy:
+	@ $(MAKE) -C src deploy
+server:
+	@ $(MAKE) -C src server
+config:
+	@ $(MAKE) -C src config
+
+.PHONY: all $(DIRS) $(DIRSCLEAN) debug-store flash upload debug console dfu deploy server config
