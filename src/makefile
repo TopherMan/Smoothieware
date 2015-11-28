@@ -103,10 +103,10 @@ deploy:
 	cp ../LPC1768/$(PROJECT).bin /media/chris/Smoothie/firmware.bin
 
 server: 
-	scp ../LPC1768/$(PROJECT).bin rpir:/home/pi/Scripts/firmware.bin
-	ssh rpir /home/pi/Scripts/SmoothieUpdate.sh
+	scp ../LPC1768/$(PROJECT).bin octopi:/home/pi/Smoothie/firmware.bin
+	ssh octopi /home/pi/Smoothie/SmoothieUpdate.sh
 
 config: 
-	scp ../ConfigSamples/config.mine rpir:/home/pi/Scripts/config
-	ssh rpir /home/pi/Scripts/SmoothieConfig.sh
+	scp ../ConfigSamples/config.mine octopi:/home/pi/Smoothie/config
+	ssh octopi /home/pi/Smoothie/SmoothieConfig.sh
 
