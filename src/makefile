@@ -59,7 +59,7 @@ DEFINES += -DSTEPTICKER_DEBUG_PIN=$(STEPTICKER_DEBUG_PIN)
 endif
 
 # add any modules that you do not want included in the build
-EXCLUDE_MODULES = tools/touchprobe tools/zprobe tools/laser utils/panel tools/scaracal
+EXCLUDE_MODULES = tools/touchprobe tools/zprobe tools/laser utils/panel tools/scaracal tools/spindle tools/drillingcycles tools/filamentdetector utils/motordrivercontrol
 # e.g for a CNC machine
 #export EXCLUDED_MODULES = tools/touchprobe tools/laser tools/temperaturecontrol tools/extruder
 
