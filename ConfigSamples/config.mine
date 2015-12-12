@@ -17,7 +17,7 @@ alpha_steps_per_mm                           88.889           # Steps per mm for
 beta_steps_per_mm                            88.889           # Steps per mm for beta stepper
 gamma_steps_per_mm                           88.889           # Steps per mm for gamma stepper
 
-arm_length                                   250.0            # this is the length of an arm from hinge to hinge
+arm_length                                   288.27           # this is the length of an arm from hinge to hinge
 arm_radius                                   116.793          # this is the horiontal distance from hinge to hinge when
                                                               # the effector is centered
 
