@@ -18,7 +18,7 @@ beta_steps_per_mm                            88.889           # Steps per mm for
 gamma_steps_per_mm                           88.889           # Steps per mm for gamma stepper
 
 arm_length                                   288.27           # this is the length of an arm from hinge to hinge
-arm_radius                                   116.793          # this is the horiontal distance from hinge to hinge when
+arm_radius                                   116.3711         # this is the horiontal distance from hinge to hinge when
                                                               # the effector is centered
 
 # Planner module configuration : Look-ahead and acceleration configuration
@@ -161,7 +161,7 @@ beta_max                                     0                #
 gamma_min_endstop                            nc               #
 gamma_max_endstop                            1.26^            #
 gamma_homing_direction                       home_to_max      #
-gamma_max                                    531.003          #
+gamma_max                                    475.000          #
 
 alpha_fast_homing_rate_mm_s                  50               # homing feedrates in mm/second
 beta_fast_homing_rate_mm_s                   50               #
@@ -174,15 +174,15 @@ alpha_homing_retract_mm                      5                # retract/bounce d
 beta_homing_retract_mm                       5                #
 gamma_homing_retract_mm                      5                #
 
-alpha_trim                                   0                # software trim for alpha stepper endstop (in mm)
-beta_trim                                    -0.067           # software trim for beta stepper endstop (in mm)
-gamma_trim                                   -1.192           # software trim for gamma stepper endstop (in mm)
+alpha_trim                                   -0.733           # software trim for alpha stepper endstop (in mm)
+beta_trim                                    -1.986           # software trim for beta stepper endstop (in mm)
+gamma_trim                                   -3.353           # software trim for gamma stepper endstop (in mm)
 
 endstop_debounce_count                       100              # uncomment if you get noise on your endstops
 
 # optional Z probe
-zprobe.enable                                false           # set to true to enable a zprobe
-zprobe.probe_pin                             1.28!^          # pin probe is attached to if NC remove the !
+zprobe.enable                                true           # set to true to enable a zprobe
+zprobe.probe_pin                             1.27!          # pin probe is attached to if NC remove the !
 zprobe.slow_feedrate                         5               # mm/sec probe feed rate
 #zprobe.debounce_count                       100             # set if noisy
 zprobe.fast_feedrate                         100             # move feedrate mm/sec
@@ -190,8 +190,8 @@ zprobe.probe_height                          5               # how much above be
 #gamma_min_endstop                           nc              # normally 1.28. Change to nc to prevent conflict,
 
 # associated with zprobe the leveling strategy to use
-#leveling-strategy.delta-calibration.enable   true            # basic delta calibration
-#leveling-strategy.delta-calibration.radius   100             # the probe radius
+leveling-strategy.delta-calibration.enable   true            # basic delta calibration
+leveling-strategy.delta-calibration.radius   100             # the probe radius
 
 # kill button (used to be called pause) maybe assigned to a different pin, set to the onboard pin by default
 kill_button_enable                           true             # set to true to enable a kill button
@@ -199,9 +199,6 @@ kill_button_pin                              2.12             # kill button pin.
 
 # Panel
 panel.enable                                 false             # set to true to enable the panel code
-#panel.lcd                                    smoothiepanel     # set type of panel
-#panel.encoder_a_pin                          3.25!^            # encoder pin
-#panel.encoder_b_pin                          3.26!^            # encoder pin
 
 # Only needed on a smoothieboard
 currentcontrol_module_enable                 false            #

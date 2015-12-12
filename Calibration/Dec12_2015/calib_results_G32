@@ -1,0 +1,70 @@
+Send: G32
+Recv: Calibrating Endstops: target 0.030000mm, radius 100.000000mm
+Recv: set trim to X:0.000000 Y:0.000000 Z:0.000000
+Recv: initial Bed ht is 472.622498 mm
+Recv: T1-0 Z:3.9375 C:350
+Recv: T2-0 Z:5.0062 C:445
+Recv: T3-0 Z:6.2100 C:552
+Recv: set trim to X:0.000000 Y:-1.338287 Z:-2.845621
+Recv: T1-1 Z:5.1862 C:461
+Recv: T2-1 Z:5.1187 C:455
+Recv: T3-1 Z:4.9725 C:442
+Recv: set trim to X:-0.267658 Y:-1.521421 Z:-2.845621
+Recv: T1-2 Z:5.0625 C:450
+Recv: T2-2 Z:5.0625 C:450
+Recv: T3-2 Z:5.1187 C:455
+Recv: set trim to X:-0.267658 Y:-1.521421 Z:-2.916057
+Recv: T1-3 Z:5.0850 C:452
+Recv: T2-3 Z:5.1300 C:456
+Recv: T3-3 Z:5.0962 C:453
+Recv: set trim to X:-0.267658 Y:-1.577770 Z:-2.930144
+Recv: T1-4 Z:5.1075 C:454
+Recv: T2-4 Z:5.0400 C:448
+Recv: T3-4 Z:5.1075 C:454
+Recv: set trim to X:-0.352181 Y:-1.577770 Z:-3.014667
+Recv: T1-5 Z:5.1075 C:454
+Recv: T2-5 Z:5.2312 C:465
+Recv: T3-5 Z:5.0400 C:448
+Recv: set trim to X:-0.436704 Y:-1.817253 Z:-3.014667
+Recv: T1-6 Z:5.1075 C:454
+Recv: T2-6 Z:5.0287 C:447
+Recv: T3-6 Z:5.1637 C:459
+Recv: set trim to X:-0.535314 Y:-1.817253 Z:-3.183714
+Recv: T1-7 Z:5.1525 C:458
+Recv: T2-7 Z:5.0512 C:449
+Recv: T3-7 Z:5.0850 C:452
+Recv: set trim to X:-0.662099 Y:-1.817253 Z:-3.225976
+Recv: T1-8 Z:5.0850 C:452
+Recv: T2-8 Z:5.1975 C:462
+Recv: T3-8 Z:5.0625 C:450
+Recv: set trim to X:-0.690273 Y:-1.986299 Z:-3.225976
+Recv: T1-9 Z:5.0850 C:452
+Recv: T2-9 Z:5.0512 C:449
+Recv: T3-9 Z:5.1525 C:458
+Recv: set trim to X:-0.732535 Y:-1.986299 Z:-3.352761
+Recv: T1-10 Z:5.0850 C:452
+Recv: T2-10 Z:5.0962 C:453
+Recv: T3-10 Z:5.1075 C:454
+Recv: trim set to within required parameters: delta 0.022500
+Recv: Calibrating delta radius: target 0.030000, radius 100.000000
+Recv: initial Bed ht is 472.622498 mm
+Recv: CT Z:4.961 C:441
+Recv: T1-1 Z:5.074 C:451
+Recv: T2-1 Z:5.119 C:455
+Recv: T3-1 Z:4.995 C:444
+Recv: C-1 Z-ave:5.0625 delta: -0.101
+Recv: Setting delta radius to: 116.5399
+Recv: T1-2 Z:5.051 C:449
+Recv: T2-2 Z:5.017 C:446
+Recv: T3-2 Z:5.017 C:446
+Recv: C-2 Z-ave:5.0287 delta: -0.068
+Recv: Setting delta radius to: 116.3711
+Recv: T1-3 Z:4.927 C:438
+Recv: T2-3 Z:4.972 C:442
+Recv: T3-3 Z:4.916 C:437
+Recv: C-3 Z-ave:4.9387 delta: 0.022
+Recv: Calibration complete, save settings with M500
+Recv: ok
+Send: M500
+Recv: Settings Stored to /sd/config-override
+Recv: ok
