@@ -27,6 +27,10 @@
 #include "StepperMotor.h"
 #include "BaseSolution.h"
 #include "EndstopsPublicAccess.h"
+#include "Configurator.h"
+#include "SimpleShell.h"
+
+#include "platform_memory.h"
 
 #include <malloc.h>
 #include <array>
@@ -40,6 +44,7 @@
 #define acceleration_ticks_per_second_checksum      CHECKSUM("acceleration_ticks_per_second")
 #define disable_leds_checksum                       CHECKSUM("leds_disable")
 #define grbl_mode_checksum                          CHECKSUM("grbl_mode")
+#define ok_per_line_checksum                        CHECKSUM("ok_per_line")
 
 Kernel* Kernel::instance;
 
@@ -75,36 +80,36 @@ Kernel::Kernel(){
 #if MRI_ENABLE != 0
     switch( __mriPlatform_CommUartIndex() ) {
         case 0:
-            this->serial = new SerialConsole(USBTX, USBRX, this->config->value(uart0_checksum,baud_rate_setting_checksum)->by_default(DEFAULT_SERIAL_BAUD_RATE)->as_number());
+            this->serial = new(AHB0) SerialConsole(USBTX, USBRX, this->config->value(uart0_checksum,baud_rate_setting_checksum)->by_default(DEFAULT_SERIAL_BAUD_RATE)->as_number());
             break;
         case 1:
-            this->serial = new SerialConsole(  p13,   p14, this->config->value(uart0_checksum,baud_rate_setting_checksum)->by_default(DEFAULT_SERIAL_BAUD_RATE)->as_number());
+            this->serial = new(AHB0) SerialConsole(  p13,   p14, this->config->value(uart0_checksum,baud_rate_setting_checksum)->by_default(DEFAULT_SERIAL_BAUD_RATE)->as_number());
             break;
         case 2:
-            this->serial = new SerialConsole(  p28,   p27, this->config->value(uart0_checksum,baud_rate_setting_checksum)->by_default(DEFAULT_SERIAL_BAUD_RATE)->as_number());
+            this->serial = new(AHB0) SerialConsole(  p28,   p27, this->config->value(uart0_checksum,baud_rate_setting_checksum)->by_default(DEFAULT_SERIAL_BAUD_RATE)->as_number());
             break;
         case 3:
-            this->serial = new SerialConsole(   p9,   p10, this->config->value(uart0_checksum,baud_rate_setting_checksum)->by_default(DEFAULT_SERIAL_BAUD_RATE)->as_number());
+            this->serial = new(AHB0) SerialConsole(   p9,   p10, this->config->value(uart0_checksum,baud_rate_setting_checksum)->by_default(DEFAULT_SERIAL_BAUD_RATE)->as_number());
             break;
     }
 #endif
     // default
     if(this->serial == NULL) {
-        this->serial = new SerialConsole(USBTX, USBRX, this->config->value(uart0_checksum,baud_rate_setting_checksum)->by_default(DEFAULT_SERIAL_BAUD_RATE)->as_number());
+        this->serial = new(AHB0) SerialConsole(USBTX, USBRX, this->config->value(uart0_checksum,baud_rate_setting_checksum)->by_default(DEFAULT_SERIAL_BAUD_RATE)->as_number());
     }
 
     //some boards don't have leds.. TOO BAD!
     this->use_leds= !this->config->value( disable_leds_checksum )->by_default(false)->as_bool();
     this->grbl_mode= this->config->value( grbl_mode_checksum )->by_default(false)->as_bool();
+    this->ok_per_line= this->config->value( ok_per_line_checksum )->by_default(true)->as_bool();
 
-    this->add_module( this->config );
     this->add_module( this->serial );
 
     // HAL stuff
     add_module( this->slow_ticker = new SlowTicker());
 
     this->step_ticker = new StepTicker();
-    this->adc = new Adc();
+    this->adc = new(AHB0) Adc();
 
     // TODO : These should go into platform-specific files
     // LPC17xx-specific
@@ -147,9 +152,10 @@ Kernel::Kernel(){
     this->add_module( this->robot          = new Robot()         );
     this->add_module( this->stepper        = new Stepper()       );
     this->add_module( this->conveyor       = new Conveyor()      );
+    this->add_module( this->simpleshell    = new SimpleShell()   );
 
-    this->planner = new Planner();
-
+    this->planner = new(AHB0) Planner();
+    this->configurator   = new Configurator();
 }
 
 // return a GRBL-like query string for serial ?
@@ -159,6 +165,7 @@ std::string Kernel::get_query_string()
     bool homing;
     bool ok = PublicData::get_value(endstops_checksum, get_homing_status_checksum, 0, &homing);
     if(!ok) homing= false;
+    bool running= false;
 
     str.append("<");
     if(halted) {
@@ -170,30 +177,48 @@ std::string Kernel::get_query_string()
     }else if(this->conveyor->is_queue_empty()) {
         str.append("Idle,");
     }else{
+        running= true;
         str.append("Run,");
     }
 
-    // get real time current actuator position in mm
-    ActuatorCoordinates current_position{
-        robot->actuators[X_AXIS]->get_current_position(),
-        robot->actuators[Y_AXIS]->get_current_position(),
-        robot->actuators[Z_AXIS]->get_current_position()
-    };
+    if(running) {
+        // get real time current actuator position in mm
+        ActuatorCoordinates current_position{
+            robot->actuators[X_AXIS]->get_current_position(),
+            robot->actuators[Y_AXIS]->get_current_position(),
+            robot->actuators[Z_AXIS]->get_current_position()
+        };
 
-    // get machine position from the actuator position using FK
-    float mpos[3];
-    robot->arm_solution->actuator_to_cartesian(current_position, mpos);
+        // get machine position from the actuator position using FK
+        float mpos[3];
+        robot->arm_solution->actuator_to_cartesian(current_position, mpos);
 
-    char buf[64];
-    // machine position
-    size_t n= snprintf(buf, sizeof(buf), "%f,%f,%f,", mpos[0], mpos[1], mpos[2]);
-    str.append("MPos:").append(buf, n);
+        char buf[128];
+        // machine position
+        size_t n= snprintf(buf, sizeof(buf), "%1.4f,%1.4f,%1.4f,", robot->from_millimeters(mpos[0]), robot->from_millimeters(mpos[1]), robot->from_millimeters(mpos[2]));
+        str.append("MPos:").append(buf, n);
 
-    // work space position
-    Robot::wcs_t pos= robot->mcs2wcs(mpos);
-    n= snprintf(buf, sizeof(buf), "%f,%f,%f", robot->from_millimeters(std::get<X_AXIS>(pos)), robot->from_millimeters(std::get<Y_AXIS>(pos)), robot->from_millimeters(std::get<Z_AXIS>(pos)));
-    str.append("WPos:").append(buf, n);
-    str.append(">\r\n");
+        // work space position
+        Robot::wcs_t pos= robot->mcs2wcs(mpos);
+        n= snprintf(buf, sizeof(buf), "%1.4f,%1.4f,%1.4f", robot->from_millimeters(std::get<X_AXIS>(pos)), robot->from_millimeters(std::get<Y_AXIS>(pos)), robot->from_millimeters(std::get<Z_AXIS>(pos)));
+        str.append("WPos:").append(buf, n);
+        str.append(">\r\n");
+
+    }else{
+        // return the last milestone if idle
+        char buf[128];
+        // machine position
+        Robot::wcs_t mpos= robot->get_axis_position();
+        size_t n= snprintf(buf, sizeof(buf), "%1.4f,%1.4f,%1.4f,", robot->from_millimeters(std::get<X_AXIS>(mpos)), robot->from_millimeters(std::get<Y_AXIS>(mpos)), robot->from_millimeters(std::get<Z_AXIS>(mpos)));
+        str.append("MPos:").append(buf, n);
+
+        // work space position
+        Robot::wcs_t pos= robot->mcs2wcs(mpos);
+        n= snprintf(buf, sizeof(buf), "%1.4f,%1.4f,%1.4f", robot->from_millimeters(std::get<X_AXIS>(pos)), robot->from_millimeters(std::get<Y_AXIS>(pos)), robot->from_millimeters(std::get<Z_AXIS>(pos)));
+        str.append("WPos:").append(buf, n);
+        str.append(">\r\n");
+
+    }
     return str;
 }
 

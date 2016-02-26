@@ -120,6 +120,7 @@ Robot::Robot()
     this->wcs_offsets.fill(wcs_t(0.0F, 0.0F, 0.0F));
     this->g92_offset = wcs_t(0.0F, 0.0F, 0.0F);
     this->next_command_is_MCS = false;
+    this->disable_segmentation= false;
 }
 
 //Called when the module has just been loaded
@@ -265,13 +266,13 @@ int Robot::print_position(uint8_t subcode, char *buf, size_t bufsize) const
     int n = 0;
     if(subcode == 0) { // M114 print WCS
         wcs_t pos= mcs2wcs(last_milestone);
-        n = snprintf(buf, bufsize, "C: X:%1.3f Y:%1.3f Z:%1.3f", from_millimeters(std::get<X_AXIS>(pos)), from_millimeters(std::get<Y_AXIS>(pos)), from_millimeters(std::get<Z_AXIS>(pos)));
+        n = snprintf(buf, bufsize, "C: X:%1.4f Y:%1.4f Z:%1.4f", from_millimeters(std::get<X_AXIS>(pos)), from_millimeters(std::get<Y_AXIS>(pos)), from_millimeters(std::get<Z_AXIS>(pos)));
 
     } else if(subcode == 4) { // M114.3 print last milestone (which should be the same as machine position if axis are not moving and no level compensation)
-        n = snprintf(buf, bufsize, "LMS: X:%1.3f Y:%1.3f Z:%1.3f", last_milestone[X_AXIS], last_milestone[Y_AXIS], last_milestone[Z_AXIS]);
+        n = snprintf(buf, bufsize, "LMS: X:%1.4f Y:%1.4f Z:%1.4f", last_milestone[X_AXIS], last_milestone[Y_AXIS], last_milestone[Z_AXIS]);
 
     } else if(subcode == 5) { // M114.4 print last machine position (which should be the same as M114.1 if axis are not moving and no level compensation)
-        n = snprintf(buf, bufsize, "LMCS: X:%1.3f Y:%1.3f Z:%1.3f", last_machine_position[X_AXIS], last_machine_position[Y_AXIS], last_machine_position[Z_AXIS]);
+        n = snprintf(buf, bufsize, "LMCS: X:%1.4f Y:%1.4f Z:%1.4f", last_machine_position[X_AXIS], last_machine_position[Y_AXIS], last_machine_position[Z_AXIS]);
 
     } else {
         // get real time positions
@@ -289,25 +290,25 @@ int Robot::print_position(uint8_t subcode, char *buf, size_t bufsize) const
         if(subcode == 1) { // M114.1 print realtime WCS
             // FIXME this currently includes the compensation transform which is incorrect so will be slightly off if it is in effect (but by very little)
             wcs_t pos= mcs2wcs(mpos);
-            n = snprintf(buf, bufsize, "C: X:%1.3f Y:%1.3f Z:%1.3f", from_millimeters(std::get<X_AXIS>(pos)), from_millimeters(std::get<Y_AXIS>(pos)), from_millimeters(std::get<Z_AXIS>(pos)));
+            n = snprintf(buf, bufsize, "C: X:%1.4f Y:%1.4f Z:%1.4f", from_millimeters(std::get<X_AXIS>(pos)), from_millimeters(std::get<Y_AXIS>(pos)), from_millimeters(std::get<Z_AXIS>(pos)));
 
         } else if(subcode == 2) { // M114.1 print realtime Machine coordinate system
-            n = snprintf(buf, bufsize, "MPOS: X:%1.3f Y:%1.3f Z:%1.3f", mpos[X_AXIS], mpos[Y_AXIS], mpos[Z_AXIS]);
+            n = snprintf(buf, bufsize, "MPOS: X:%1.4f Y:%1.4f Z:%1.4f", mpos[X_AXIS], mpos[Y_AXIS], mpos[Z_AXIS]);
 
         } else if(subcode == 3) { // M114.2 print realtime actuator position
-            n = snprintf(buf, bufsize, "APOS: A:%1.3f B:%1.3f C:%1.3f", current_position[X_AXIS], current_position[Y_AXIS], current_position[Z_AXIS]);
+            n = snprintf(buf, bufsize, "APOS: A:%1.4f B:%1.4f C:%1.4f", current_position[X_AXIS], current_position[Y_AXIS], current_position[Z_AXIS]);
         }
     }
     return n;
 }
 
 // converts current last milestone (machine position without compensation transform) to work coordinate system (inverse transform)
-Robot::wcs_t Robot::mcs2wcs(const float *pos) const
+Robot::wcs_t Robot::mcs2wcs(const Robot::wcs_t& pos) const
 {
     return std::make_tuple(
-        pos[X_AXIS] - std::get<X_AXIS>(wcs_offsets[current_wcs]) + std::get<X_AXIS>(g92_offset) - std::get<X_AXIS>(tool_offset),
-        pos[Y_AXIS] - std::get<Y_AXIS>(wcs_offsets[current_wcs]) + std::get<Y_AXIS>(g92_offset) - std::get<Y_AXIS>(tool_offset),
-        pos[Z_AXIS] - std::get<Z_AXIS>(wcs_offsets[current_wcs]) + std::get<Z_AXIS>(g92_offset) - std::get<Z_AXIS>(tool_offset)
+        std::get<X_AXIS>(pos) - std::get<X_AXIS>(wcs_offsets[current_wcs]) + std::get<X_AXIS>(g92_offset) - std::get<X_AXIS>(tool_offset),
+        std::get<Y_AXIS>(pos) - std::get<Y_AXIS>(wcs_offsets[current_wcs]) + std::get<Y_AXIS>(g92_offset) - std::get<Y_AXIS>(tool_offset),
+        std::get<Z_AXIS>(pos) - std::get<Z_AXIS>(wcs_offsets[current_wcs]) + std::get<Z_AXIS>(g92_offset) - std::get<Z_AXIS>(tool_offset)
     );
 }
 
@@ -443,6 +444,9 @@ void Robot::on_gcode_received(void *argument)
 
     } else if( gcode->has_m) {
         switch( gcode->m ) {
+            case 0: // M0 feed hold
+                if(THEKERNEL->is_grbl_mode()) THEKERNEL->set_feed_hold(true);
+                break;
             case 2: // M2 end of program
             case 30: // M30 end of program
                 current_wcs = 0;
@@ -767,6 +771,19 @@ void Robot::reset_axis_position(float position, int axis)
     reset_axis_position(last_milestone[X_AXIS], last_milestone[Y_AXIS], last_milestone[Z_AXIS]);
 }
 
+// similar to reset_axis_position but directly sets the actuator positions in actuators units (eg mm for cartesian, degrees for rotary delta)
+// then sets the axis postions to match. currently only called from G28.4 and M306 in Endstops.cpp
+void Robot::reset_actuator_position(float a, float b, float c)
+{
+    // NOTE this does NOT support the multiple actuator HACK. so if there are more than 3 actuators this will probably not work
+    if(!isnan(a)) actuators[0]->change_last_milestone(a);
+    if(!isnan(b)) actuators[1]->change_last_milestone(b);
+    if(!isnan(c)) actuators[2]->change_last_milestone(c);
+
+    // now correct axis positions then recorrect actuator to account for rounding
+    reset_position_from_current_actuator_position();
+}
+
 // Use FK to find out where actuator is and reset to match
 void Robot::reset_position_from_current_actuator_position()
 {
@@ -891,7 +908,10 @@ bool Robot::append_line(Gcode *gcode, const float target[], float rate_mm_s )
     // The latter is more efficient and avoids splitting fast long lines into very small segments, like initial z move to 0, it is what Johanns Marlin delta port does
     uint16_t segments;
 
-    if(this->delta_segments_per_second > 1.0F) {
+    if(this->disable_segmentation) {
+        segments= 1;
+
+    } else if(this->delta_segments_per_second > 1.0F) {
         // enabled if set to something > 1, it is set to 0.0 by default
         // segment based on current speed and requested segments per second
         // the faster the travel speed the fewer segments needed
