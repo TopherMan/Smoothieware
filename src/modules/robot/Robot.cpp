@@ -417,9 +417,17 @@ void Robot::on_gcode_received(void *argument)
             case 91: this->absolute_mode = false;   break;
 
             case 92: {
-                 if(gcode->subcode == 1 || gcode->subcode == 2 || gcode->get_num_args() == 0) {
+                if(gcode->subcode == 1 || gcode->subcode == 2 || gcode->get_num_args() == 0) {
                     // reset G92 offsets to 0
                     g92_offset = wcs_t(0, 0, 0);
+
+                } else if(gcode->subcode == 3) {
+                    // initialize G92 to the specified values, only used for saving it with M500
+                    float x= 0, y= 0, z= 0;
+                    if(gcode->has_letter('X')) x= gcode->get_value('X');
+                    if(gcode->has_letter('Y')) y= gcode->get_value('Y');
+                    if(gcode->has_letter('Z')) z= gcode->get_value('Z');
+                    g92_offset = wcs_t(x, y, z);
 
                 } else {
                     // standard setting of the g92 offsets, making current WCS position whatever the coordinate arguments are
@@ -609,12 +617,12 @@ void Robot::on_gcode_received(void *argument)
                     }
                     ++n;
                 }
-                // linuxcnc does seem to save G92, so we do too
-                // also it needs to be used to set Z0 on rotary deltas as M206/306 can't be used
+                // linuxcnc saves G92, so we do too
+                // also it needs to be used to set Z0 on rotary deltas as M206/306 can't be used, so saving it is necessary
                 if(g92_offset != wcs_t(0, 0, 0)) {
                     float x, y, z;
                     std::tie(x, y, z) = g92_offset;
-                    gcode->stream->printf("G92 X%f Y%f Z%f\n", x, y, z);
+                    gcode->stream->printf("G92.3 X%f Y%f Z%f\n", x, y, z); // sets G92 to the specified values
                 }
             }
             break;
@@ -817,6 +825,13 @@ bool Robot::append_milestone(Gcode * gcode, const float target[], float rate_mm_
     ActuatorCoordinates actuator_pos;
     float transformed_target[3]; // adjust target for bed compensation and WCS offsets
     float millimeters_of_travel;
+
+    // catch negative or zero feed rates and return the same error as GRBL does
+    if(rate_mm_s <= 0.0F) {
+        gcode->is_error= true;
+        gcode->txt_after_ok= (rate_mm_s == 0 ? "Undefined feed rate" : "feed rate < 0");
+        return false;
+    }
 
     // unity transform by default
     memcpy(transformed_target, target, sizeof(transformed_target));
